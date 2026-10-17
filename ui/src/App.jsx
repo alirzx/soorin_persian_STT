@@ -101,7 +101,7 @@ export default function App(){
  const canCopy=Boolean(transcript||partial)
  return <div className="app-shell">
    <aside className="sidebar">
-     <div className="brand"><div className="brand-mark">{logoAvailable?<img className="brand-logo" src="/brand/soorin-logo.png" alt="Soorin logo" onError={()=>setLogoAvailable(false)}/>:<AudioLines size={23}/>}</div><div><strong>SOORIN<span className="brand-dot">.</span></strong><small>VOICE INFRASTRUCTURE</small></div></div>
+     <div className={`brand ${logoAvailable ? "brand--wide" : ""}`}><div className="brand-mark">{logoAvailable?<img className="brand-logo" src="/brand/soorin-logo.png" width="674" height="230" alt="Soorin" decoding="async" onError={()=>setLogoAvailable(false)}/>:<AudioLines size={23}/>}</div><div className="brand-caption">{!logoAvailable&&<strong>SOORIN<span className="brand-dot">.</span></strong>}<small>VOICE INFRASTRUCTURE</small></div></div>
      <div className="nav-label">WORKSPACE</div>
      <div className="nav-item selected"><Activity size={18}/> Transcription Studio <span className="nav-pulse"/></div>
      <div className="nav-item inactive"><Radio size={18}/> Live audio <span className="nav-context">via Studio</span></div>

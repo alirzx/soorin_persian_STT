@@ -19,3 +19,51 @@
 .output-actions .icon-btn{min-width:34px;font-size:10px;font-weight:700}
 .transcript-box{direction:rtl;text-align:right;unicode-bidi:plaintext;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* Official Soorin landscape wordmark (674 x 230): preserve ratio and legibility.
+   The previous 34px square icon frame reduced its visible height to ~12px. */
+.brand.brand--wide {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin: 0 0 38px;
+  padding: 0 2px;
+}
+.brand--wide .brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  min-height: 76px;
+  padding: 10px 11px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #91b6c6;
+  background: #f5fafb;
+  box-shadow: 0 12px 32px #00000026;
+}
+.brand--wide .brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 90px;
+  aspect-ratio: 674 / 230;
+  object-fit: contain;
+  filter: none;
+}
+.brand--wide .brand-caption { padding: 0 7px; }
+.brand--wide .brand-caption small {
+  display: block;
+  color: #86a8b6;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.4;
+}
+@media (max-width: 1100px) {
+  .brand--wide .brand-mark { min-height: 62px; padding: 8px; }
+  .brand--wide .brand-logo { max-height: 70px; }
+}
