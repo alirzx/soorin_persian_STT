@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useRef,useState } from 'react'
-import { Activity,AudioLines,Check,ChevronDown,Clipboard,FileAudio,Headphones,Info,Mic,Pause,Play,Radio,RefreshCcw,Shield,Square,UploadCloud,Volume2,Waveform,X,Zap } from 'lucide-react'
+import { Activity,AudioLines,Check,ChevronDown,Clipboard,FileAudio,Headphones,Info,Mic,Pause,Play,Radio,RefreshCcw,Shield,Square,UploadCloud,Volume2,X,Zap } from 'lucide-react'
 const endpoint='/api'
 const uri=()=>`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/v1/audio/transcriptions/stream`
 const human=(ms)=>ms<1000?`${ms} ms`:`${(ms/1000).toFixed(2)} s`
@@ -106,7 +106,7 @@ export default function App(){
    <main className="main">
      <header className="topbar"><div className="crumb">Platform <span>/</span> Speech Intelligence <span>/</span> <b>Studio</b></div><div className="top-right"><span className="topchip"><span className={`status-dot ${health?.ready?'ok':'off'}`}/>{health?.ready?'Service operational':'Service unavailable'}</span><button className="icon-btn" onClick={refresh} title="Refresh service"><RefreshCcw size={17}/></button></div></header>
      <div className="content">
-       <div className="intro"><div><div className="eyebrow"><span/> PERSIAN SPEECH INTELLIGENCE <span className="version">v0.1</span></div><h1>Speech, transformed<br/><span>into understanding.</span></h1><p>Transcribe Persian audio locally with a modular, production-oriented inference service.</p></div><div className="intro-icon"><Waveform size={58} strokeWidth={1.3}/></div></div>
+       <div className="intro"><div><div className="eyebrow"><span/> PERSIAN SPEECH INTELLIGENCE <span className="version">v0.1</span></div><h1>Speech, transformed<br/><span>into understanding.</span></h1><p>Transcribe Persian audio locally with a modular, production-oriented inference service.</p></div><div className="intro-icon"><AudioLines size={58} strokeWidth={1.3}/></div></div>
        <div className="metrics-row"><div><span>ACTIVE MODEL</span><strong>{model?.name||'No model loaded'}</strong></div><div><span>BACKEND</span><strong>{model?.backend?.replaceAll('_',' ')||'Unavailable'}</strong></div><div><span>STREAMING MODE</span><strong>{model?.streaming_mode==='native'?'Cache-aware / native':'Buffered / chunked'}</strong></div></div>
        <div className="section-header"><h2>Transcription studio</h2><span>Audio → Persian text</span></div>
        <div className="studio-grid"><section className="card input-panel"><div className="card-header"><div><h3>Audio input</h3><p>Record in real time or transcribe a file</p></div><Headphones size={19}/></div>
