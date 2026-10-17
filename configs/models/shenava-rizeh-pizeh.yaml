@@ -1,0 +1,19 @@
+name: shenava-rizeh-pizeh
+backend: sherpa_offline_ctc
+repo: Reza2kn/Shenava-Rizeh-Pizeh-v1.0-sherpa-onnx
+revision: ''
+license: Apache-2.0
+artifacts:
+  model: model.onnx
+  tokens: tokens.txt
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: 6.9M tiny Rizeh-Pizeh offline

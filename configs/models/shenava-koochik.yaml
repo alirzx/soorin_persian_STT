@@ -1,0 +1,20 @@
+name: shenava-koochik
+backend: sherpa_offline_ctc
+repo: PersianML/Shenava-Koochik-v1.0-sherpa-onnx
+revision: ''
+license: Apache-2.0
+artifacts:
+  model: model.onnx
+  tokens: tokens.txt
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Official Apache Shenava Koochik 114M offline FP32, production-compatible
+  buffered WS

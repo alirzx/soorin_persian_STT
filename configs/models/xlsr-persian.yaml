@@ -1,0 +1,18 @@
+name: xlsr-persian
+backend: transformers_asr
+repo: jonatasgrosman/wav2vec2-large-xlsr-53-persian
+revision: ''
+license: Apache-2.0
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Legacy XLSR-53 CTC

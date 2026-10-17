@@ -1,0 +1,2 @@
+# Editable install uses pyproject.toml as the single source of dependency constraints.
+-e .

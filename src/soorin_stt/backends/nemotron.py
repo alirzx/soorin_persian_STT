@@ -1,0 +1,1 @@
+from soorin_stt.backends.sherpa import SherpaTransducerBackend

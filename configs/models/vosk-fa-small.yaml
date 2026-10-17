@@ -1,0 +1,18 @@
+name: vosk-fa-small
+backend: vosk
+repo: ''
+revision: ''
+license: Apache-2.0
+artifacts: {}
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: native
+status: supported
+description: Download Vosk model separately and place unpacked model directory at
+  models/downloads/vosk-fa-small

@@ -1,0 +1,17 @@
+name: steja-whisper-large
+backend: faster_whisper
+repo: steja/whisper-large-persian
+revision: ''
+license: Apache-2.0
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.json'
+- '*.safetensors'
+- '*.bin'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Whisper model; conversion to CT2 needed before runtime

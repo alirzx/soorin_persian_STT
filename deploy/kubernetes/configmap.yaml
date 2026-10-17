@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soorin-stt-config
+data:
+  APP_ENV: production
+  STT_MODEL: shenava-koochik
+  STT_MODEL_DIR: /opt/models/stt
+  STT_CATALOG_DIR: /app/configs/models
+  STT_DEVICE: cpu
+  STT_OFFLINE: 'true'
+  APP_HOST: 0.0.0.0
+  APP_PORT: '8080'
+# Supply APP_API_KEY from a Kubernetes Secret, not this ConfigMap.

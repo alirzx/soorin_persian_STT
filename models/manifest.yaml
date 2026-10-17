@@ -1,0 +1,4 @@
+# Model snapshots are intentionally NOT committed to Git.
+# Every HF model snapshot receives .soorin-model.json containing pinned commit and SHA-256 per file.
+# Use: soorin-models download --model shenava-koochik
+models: []

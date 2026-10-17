@@ -1,0 +1,49 @@
+name: soorin-stt
+services:
+  stt-api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "8080"
+      STT_MODEL_DIR: /opt/models/stt
+      STT_CATALOG_DIR: /app/configs/models
+      STT_OFFLINE: "true"
+    volumes:
+      - ../models/downloads:/opt/models/stt:ro
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    cpus: ${DOCKER_STT_CPUS:-4.0}
+    mem_limit: ${DOCKER_STT_MEMORY_LIMIT:-2g}
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"]
+      interval: 15s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+  stt-ui:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile.ui
+    ports:
+      - "${UI_PORT:-3000}:80"
+    depends_on:
+      - stt-api
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

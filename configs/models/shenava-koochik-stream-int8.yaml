@@ -1,0 +1,20 @@
+name: shenava-koochik-stream-int8
+backend: sherpa_online_ctc
+repo: mah92/sherpa-onnx-nemo-ctc-fa-shenava-koochik-v1.0-streaming-int8-2026-06-26
+revision: ''
+license: CC-BY-NC-4.0
+artifacts:
+  model: model.int8.onnx
+  tokens: tokens.txt
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: native
+status: supported
+description: Third-party INT8 streaming conversion; noncommercial, R&D only unless
+  licensed

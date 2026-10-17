@@ -1,0 +1,20 @@
+name: shenava-koochik-tract-int4
+backend: external_http
+repo: PersianML/Shenava-Koochik-v1.0-tract-streaming
+revision: ''
+license: Apache-2.0
+artifacts:
+  model: model.int4.onnx
+  tokens: tokens.txt
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: external
+status: supported
+description: Official 138 MB true-cache INT4; requires separately deployed tract HTTP
+  bridge implementing Soorin API

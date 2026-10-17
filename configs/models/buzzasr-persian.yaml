@@ -1,0 +1,17 @@
+name: buzzasr-persian
+backend: faster_whisper
+repo: BuzzASR/persian
+revision: ''
+license: MIT
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.json'
+- '*.safetensors'
+- '*.bin'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Whisper model; conversion to CT2 needed before runtime

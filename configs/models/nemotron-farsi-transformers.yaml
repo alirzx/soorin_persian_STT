@@ -1,0 +1,18 @@
+name: nemotron-farsi-transformers
+backend: transformers_asr
+repo: mehdi-hf/nemotron-asr-streaming-farsi
+revision: ''
+license: OpenMDW-1.1
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Large official Persian checkpoint, batch HF pipeline

@@ -1,0 +1,18 @@
+name: taraneh-q17b
+backend: qwen_asr
+repo: areffarhadi/Taraneh-Q1.7B
+revision: ''
+license: Apache-2.0
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Qwen3-ASR research local inference; heavy CPU, buffered partial

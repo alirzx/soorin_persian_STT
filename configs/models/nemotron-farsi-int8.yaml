@@ -1,0 +1,21 @@
+name: nemotron-farsi-int8
+backend: sherpa_online_transducer
+repo: Nimaone/nemotron-asr-streaming-farsi-onnx
+revision: ''
+license: OpenMDW-1.1
+artifacts:
+  encoder: encoder.int8.onnx
+  decoder: decoder.int8.onnx
+  joiner: joiner.int8.onnx
+  tokens: tokens.txt
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: native
+status: supported
+description: Streaming Nemotron 0.6B; explicit fa-IR prompt and 128-bin features

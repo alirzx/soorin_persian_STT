@@ -1,0 +1,12 @@
+service:
+  name: soorin-stt
+  language: fa
+  api_version: v1
+  audio:
+    sample_rate: 16000
+    channels: 1
+  design:
+    backend_agnostic: true
+    model_selection: STT_MODEL
+    restart_required_for_model_change: true
+    no_network_on_inference: true

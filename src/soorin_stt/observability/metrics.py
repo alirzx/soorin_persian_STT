@@ -1,0 +1,11 @@
+from prometheus_client import Counter,Gauge,Histogram
+REQUESTS=Counter('stt_requests_total','Transcription requests', ['status'])
+AUDIO_SECONDS=Counter('stt_audio_seconds_total','Total decoded audio seconds')
+INFERENCE=Histogram('stt_inference_seconds','Inference duration seconds')
+RTF=Histogram('stt_realtime_factor','Real time factor')
+ACTIVE=Gauge('stt_active_streams','Current streams')
+MODEL_LOADED=Gauge('stt_model_loaded','Model loaded and warmed')
+MODEL_LOAD=Histogram('stt_model_load_seconds','Startup time of model')
+PARTIAL=Histogram('stt_time_to_first_partial_seconds','First partial latency')
+FINAL=Histogram('stt_finalization_latency_seconds','Final streaming latency')
+STREAM_ERRORS=Counter('stt_stream_errors_total','Stream errors', ['code'])

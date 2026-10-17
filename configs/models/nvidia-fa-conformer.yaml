@@ -1,0 +1,18 @@
+name: nvidia-fa-conformer
+backend: transformers_asr
+repo: nvidia/stt_fa_fastconformer_hybrid_large
+revision: ''
+license: CC-BY-4.0
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.onnx'
+- tokens.txt
+- '*.json'
+- '*.safetensors'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: none
+status: research-only
+description: NeMo model; generic HF pipeline may not support, prefer NeMo custom adapter

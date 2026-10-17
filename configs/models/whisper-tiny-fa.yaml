@@ -1,0 +1,17 @@
+name: whisper-tiny-fa
+backend: faster_whisper
+repo: aictsharif/whisper-tiny-fa
+revision: ''
+license: unknown
+artifacts:
+  config: config.json
+allow_patterns:
+- '*.json'
+- '*.safetensors'
+- '*.bin'
+- '*.model'
+- '*.txt'
+- '*.md'
+streaming: buffered
+status: supported
+description: Whisper model; conversion to CT2 needed before runtime
