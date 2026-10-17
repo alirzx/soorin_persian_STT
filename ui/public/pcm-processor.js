@@ -1,36 +1,36 @@
+// Capture-device-independent downsampling with frame-boundary continuity.
 class PCMProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(){
     super();
-    this.samples = [];
-    this.previous = 0;
-    this.phase = 0;
-    this.step = sampleRate / 16000;
+    this.step=sampleRate/16000;
+    this.next=0;
+    this.index=0;
+    this.previous=0;
+    this.frames=[];
   }
-  process(inputs) {
-    const source = inputs[0];
-    if (!source || !source.length) return true;
-    const channels = source.length;
-    const input = source[0];
-    for (let i = 0; i < input.length; i++) {
-      let s = 0;
-      for (let j = 0; j < channels; j++) s += source[j][i];
-      s /= channels;
-      if (i === 0 && this.phase < 0) this.phase = 0;
-      // Linear interpolation on capture-device sample rate -> 16 kHz mono.
-      while (this.phase <= i) {
-        const frac = this.phase - (i - 1);
-        const last = i > 0 ? source[0][i-1] : this.previous;
-        const out = Math.max(-1,Math.min(1,last + (s-last)*Math.max(0,Math.min(1,frac))));
-        this.samples.push(Math.round(out * 32767));
-        this.phase += this.step;
-        if (this.samples.length >= 320) {
-          const frame = new Int16Array(this.samples.splice(0,320));
-          this.port.postMessage(frame.buffer,[frame.buffer]);
+  process(inputs){
+    const channels=inputs[0];
+    if(!channels||!channels.length)return true;
+    const length=channels[0].length;
+    for(let i=0;i<length;i++){
+      let current=0;
+      for(const c of channels)current+=c[i];
+      current/=channels.length;
+      const absolute=this.index+i;
+      while(this.next<=absolute){
+        const frac=Math.max(0,Math.min(1,this.next-(absolute-1)));
+        const sample=this.previous+(current-this.previous)*frac;
+        this.frames.push(Math.round(Math.max(-1,Math.min(1,sample))*32767));
+        if(this.frames.length===320){
+          const pcm=new Int16Array(this.frames);
+          this.port.postMessage(pcm.buffer,[pcm.buffer]);
+          this.frames=[];
         }
+        this.next+=this.step;
       }
+      this.previous=current;
     }
-    this.phase -= input.length;
-    this.previous = input[input.length-1];
+    this.index+=length;
     return true;
   }
 }

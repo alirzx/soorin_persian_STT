@@ -1,0 +1,17 @@
+name: Container build smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'src/**'
+      - 'ui/**'
+      - 'pyproject.toml'
+      - 'ui/package-lock.json'
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/docker/Dockerfile -t soorin-stt-api:test .
+      - run: docker build -f deploy/docker/Dockerfile.ui -t soorin-stt-ui:test .

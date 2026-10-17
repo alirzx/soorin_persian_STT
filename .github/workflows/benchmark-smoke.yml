@@ -1,0 +1,17 @@
+name: Benchmark smoke (no model downloads)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tests/**'
+      - 'src/soorin_stt/streaming/**'
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[test]'
+      - run: python -m pytest -q tests/streaming tests/contract

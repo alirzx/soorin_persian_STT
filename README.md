@@ -119,3 +119,14 @@ The tests validate schemas, catalog switching, Persian normalization, decoder, H
 ### Repository status
 
 This is **an implemented, testable service foundation with production patterns**, not a production-certified binary. The official Rust tract INT4 gateway is intentionally not represented as a working Python native adapter. High-resource and third-party Qwen/Nemotron paths are implemented as candidate integration routes but must pass live model/hardware/licensing tests before release. K8s YAML is an operational template and needs real image/PVC/Secret/ingress values.
+
+
+## October 2026 hardening branch
+
+The Shenava offline backbone is unchanged. Buffered WebSocket sessions use RMS endpointing and bounded utterance windows rather than retranscribing an unbounded recording. Partial hypotheses are provisional; segment events include the committed full transcript, and the final event remains backward compatible. Streaming metrics are separate from batch metrics. A timed-out native inference thread retains its concurrency slot until it exits.
+
+For multiple Soorin products in the same Docker network, create one shared network before Compose startup: `docker network create soorin-ai` (once); the service hostname is `stt-api`, with `http://stt-api:8080/v1/audio/transcriptions` for other containers attached to `soorin-ai`. Use a shared secret, trusted ingress, and private networking; do not rely on CORS as authentication. The development studio has no secret-injection mechanism and should not be exposed publicly.
+
+Brand logo slot: place your official SVG at `ui/public/brand/soorin-logo.svg`. The interface falls back to its standard voice symbol until that asset is present. Do not commit copyrighted corporate marks without permission.
+
+Resource model: a single CPU worker and bounded concurrency protect a single loaded ONNX model; these changes are not a validated capacity claim for multiple simultaneous real-world streams. Load testing on the target server is required. Native INT4 tract inference is outside this patch.
