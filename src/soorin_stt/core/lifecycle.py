@@ -15,6 +15,7 @@ class ServiceState:
         self.backend=None
         self.ready=False
         self.load_error:str|None=None
+        self.model_revision:str|None=None
         self.inference_slots=asyncio.Semaphore(settings.app_inference_concurrency)
         self.sessions=SessionCapacity(settings.stream_max_sessions)
     async def start(self)->None:
@@ -24,7 +25,8 @@ class ServiceState:
             self.model=resolve(self.settings)
             if self.model.backend != 'external_http' and self.settings.stt_require_model_pin:
                 from soorin_stt.models_cli import verify
-                await asyncio.to_thread(verify, self.model.name)
+                manifest = await asyncio.to_thread(verify, self.model.name)
+                self.model_revision = manifest.get('revision') if manifest else None
             self.backend=build_backend(self.settings,self.model)
             # Native runtimes are synchronous: never block the HTTP event loop.
             await asyncio.to_thread(self.backend.load)

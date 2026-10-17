@@ -16,7 +16,7 @@ def current(request:Request):
     model=state.model
     return {'ready':state.ready,'name':model.name if model else None,
             'backend':model.backend if model else None,'repo':model.repo if model else None,
-            'revision':model.revision if model else None,'license':model.license if model else None,
+            'revision':(state.model_revision or model.revision) if model else None,'license':model.license if model else None,
             'streaming_mode':('native' if state.backend.features.true_streaming else 'buffered') if state.backend else None}
 @router.get('/version')
 def version():

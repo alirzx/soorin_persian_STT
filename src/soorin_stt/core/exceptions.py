@@ -14,6 +14,10 @@ class Overloaded(STTError):
     code = "capacity_exceeded"
     status = 429
 
+class InferenceTimedOut(STTError):
+    code = "inference_timeout"
+    status = 504
+
 class UnsupportedRuntime(STTError):
     code = "unsupported_runtime"
     status = 422
