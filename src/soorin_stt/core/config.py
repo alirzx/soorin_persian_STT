@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     stream_partial_interval_ms: int = Field(default=300, ge=100)
     stream_window_max_seconds: float = Field(default=8.0, ge=2, le=30)
     stream_partial_min_audio_seconds: float = Field(default=1.2, ge=0.2, le=10)
+    stream_partial_max_queued_frames: int = Field(default=8, ge=0, le=1024)
     stream_partial_decode_interval_seconds: float = Field(default=3.0, ge=0.5, le=30)
     stream_max_seconds: int = Field(default=600, ge=1)
     stream_idle_timeout_seconds: int = Field(default=60, ge=5)

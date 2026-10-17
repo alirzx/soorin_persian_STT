@@ -166,6 +166,7 @@ async def stream(ws: WebSocket):
                         elif window.has_speech() and (
                             window.buffered_seconds() >= settings.stream_partial_min_audio_seconds
                             and time.monotonic() - last_decode >= settings.stream_partial_decode_interval_seconds
+                            and q.qsize() <= settings.stream_partial_max_queued_frames
                         ):
                             hypothesis = await decode(window.window(), "partial")
                             await publish_partial(window.transcript(hypothesis))
