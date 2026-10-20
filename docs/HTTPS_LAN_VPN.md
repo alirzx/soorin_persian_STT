@@ -37,9 +37,11 @@ cp -p .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
 read -rsp 'Studio HTTPS password: ' STT_PW; echo
 HASH="$(printf '%s\n' "$STT_PW" | sudo docker run --rm -i caddy:2.10-alpine caddy hash-password --algorithm bcrypt)"
 unset STT_PW
+printf '%s\n' "$HASH"
 # Copy the printed hash into .env as STT_HTTPS_PASSWORD_HASH='<bcrypt hash>'
 # The single quotes are important: Compose must not interpolate bcrypt's dollar signs.
 # Do not commit .env or publish the hash.
+unset HASH
 
 python3 scripts/deploy/check_https.py
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
