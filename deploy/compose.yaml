@@ -87,9 +87,9 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
-        test -n "${STT_HTTPS_HOST}" &&
-        test -n "${STT_HTTPS_USER}" &&
-        test -n "${STT_HTTPS_PASSWORD_HASH}" ||
+        test -n "$STT_HTTPS_HOST" &&
+        test -n "$STT_HTTPS_USER" &&
+        test -n "$STT_HTTPS_PASSWORD_HASH" ||
         { echo "HTTPS ingress requires host, user and password hash" >&2; exit 1; };
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     ports:
