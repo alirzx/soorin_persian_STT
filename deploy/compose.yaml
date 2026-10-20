@@ -56,7 +56,7 @@ services:
       context: ..
       dockerfile: deploy/docker/Dockerfile.ui
     ports:
-      - "${UI_BIND_HOST:-127.0.0.1}:${UI_PORT:-3000}:80"
+      - "${UI_BIND_HOST:-127.0.0.1}:${UI_PORT:-3015}:80"
     depends_on:
       stt-api:
         condition: service_healthy

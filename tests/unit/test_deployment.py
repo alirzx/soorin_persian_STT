@@ -17,7 +17,7 @@ def test_compose_protects_host_ports_and_shares_network():
     api = compose["services"]["stt-api"]
     studio = compose["services"]["stt-ui"]
     assert api["ports"][0].startswith("${STT_BIND_HOST:-127.0.0.1}:")
-    assert studio["ports"][0].startswith("${UI_BIND_HOST:-127.0.0.1}:")
+    assert studio["ports"][0] == "${UI_BIND_HOST:-127.0.0.1}:${UI_PORT:-3015}:80"
     assert "studio" in studio["profiles"]
     assert studio["depends_on"]["stt-api"]["condition"] == "service_healthy"
     assert "soorin-ai" in api["networks"]

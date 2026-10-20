@@ -60,10 +60,10 @@ production frontend. With `APP_ENV=development` and empty APP_API_KEY:
 
 ```bash
 docker compose --env-file .env -f deploy/compose.yaml --profile studio up --build -d
-# UI: http://127.0.0.1:3000 | API: http://127.0.0.1:8080
+# UI: http://127.0.0.1:3015 | API: http://127.0.0.1:8080
 ```
 
-The studio does not implement SSO or browser-safe API key exchange. When
+Port 3000 is reserved by Soorin Copilot Grafana on the development host.\nThe STT Studio uses host port 3015 by default; Nginx still listens on port 80\ninside the container. To override this, set `UI_PORT` in the host `.env` or\nsupply `UI_PORT=3015` before the `docker compose` command. If an existing\n`.env` contains `UI_PORT=3000`, change that value manually: Compose\ninterpolation will otherwise keep using the old port. Confirm the port is free\nusing `ss -ltnp | grep ':3015 '` before starting.\n\nThe studio does not implement SSO or browser-safe API key exchange. When
 `APP_API_KEY` is configured, a trusted authenticated reverse proxy must
 supply the credential upstream, otherwise browser transcription requests
 will fail. Never embed a service credential into React JavaScript.

@@ -138,3 +138,11 @@ Resource model: a single CPU worker and bounded concurrency protect a single loa
 ## Deployment-ready configuration (October 2026)
 
 Docker build context excludes private .env, downloaded models, local virtual environments and audio artifacts. Compose defaults to a single API service with a shared external network and loopback-bound ports; `--profile studio` enables the unprivileged-network development Studio (not an authenticated product UI). See [deployment checklist](docs/DEPLOYMENT.md) before shipping. GitHub Actions checks the Docker image builds and Compose config, but **real runtime and simultaneous-user smoke tests remain required**.
+
+
+### Local Studio port (Soorin Copilot coexistence)
+
+The Docker Studio UI defaults to **127.0.0.1:3015** (container port 80), since
+127.0.0.1:3000 is used by Soorin Copilot Grafana on the development host.
+Set `UI_PORT=3015` in an existing host `.env` if it still specifies 3000.
+The API remains at 127.0.0.1:8080 and `stt-api:8080` on the shared Docker network.
