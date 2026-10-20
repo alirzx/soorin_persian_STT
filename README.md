@@ -82,7 +82,7 @@ soorin-models download --model shenava-koochik
 ./scripts/deploy/prepare-network.sh
 docker compose --env-file .env -f deploy/compose.yaml up --build -d
 # backend: http://127.0.0.1:8080 (not exposed on external host interfaces)
-# optional trusted-development UI: add --profile studio (localhost:3000)
+# optional trusted-development UI: add --profile studio (localhost:3015)
 ```
 
 Docker copies `pyproject.toml`/Python package and installs `.[sherpa]`. To use Whisper/Qwen, build a specialized image with the relevant optional extras. The backend does not fetch models at request time.
@@ -146,3 +146,13 @@ The Docker Studio UI defaults to **127.0.0.1:3015** (container port 80), since
 127.0.0.1:3000 is used by Soorin Copilot Grafana on the development host.
 Set `UI_PORT=3015` in an existing host `.env` if it still specifies 3000.
 The API remains at 127.0.0.1:8080 and `stt-api:8080` on the shared Docker network.
+
+
+### HTTPS microphone on LAN/VPN
+
+A browser cannot use `navigator.mediaDevices.getUserMedia` from
+`http://192.168.0.62:3015`. The optional `--profile secure` adds a Caddy
+HTTPS ingress with an internal CA, shared Basic authentication and persisted
+certificates; keep plain HTTP UI/API bound to loopback. **Clients must trust
+the CA** for live microphone; `wss://` then proxies through existing Nginx to
+FastAPI. See [HTTPS LAN/VPN deployment](docs/HTTPS_LAN_VPN.md).

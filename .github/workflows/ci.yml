@@ -24,4 +24,5 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
       - run: npm ci --prefix ui
+      - run: npm test --prefix ui
       - run: npm run build --prefix ui

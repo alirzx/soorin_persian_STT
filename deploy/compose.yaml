@@ -76,7 +76,47 @@ services:
     networks:
       - soorin-ai
 
+  # Optional secure LAN/VPN ingress. Run with --profile studio --profile secure.
+  # HTTPS terminates here; Nginx serves the SPA and proxies /api including WebSockets.
+  # Do not expose the plain HTTP UI on the LAN when this profile is enabled.
+  stt-https:
+    profiles: ["secure"]
+    image: caddy:2.10-alpine
+    env_file:
+      - ../.env
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        test -n "$STT_HTTPS_HOST" &&
+        test -n "$STT_HTTPS_USER" &&
+        test -n "$STT_HTTPS_PASSWORD_HASH" ||
+        { echo "HTTPS ingress requires host, user and password hash" >&2; exit 1; };
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    ports:
+      - "${STT_HTTPS_BIND_HOST:-127.0.0.1}:${STT_HTTPS_PORT:-3443}:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - stt_https_data:/data
+      - stt_https_config:/config
+    depends_on:
+      stt-ui:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    networks:
+      - soorin-ai
+
 networks:
   soorin-ai:
     name: ${SOORIN_STT_NETWORK:-soorin-ai}
     external: true
+
+volumes:
+  stt_https_data:
+  stt_https_config:
