@@ -13,3 +13,7 @@ Soorin STT operates on potentially confidential audio and generated transcripts.
 - No external call for inference. Downloader uses Hugging Face only during installation; the runtime is configured offline.
 
 Contact the Soorin security team privately before deploying this service outside a protected network.
+
+- Default Docker published API and studio ports bind to 127.0.0.1; other Soorin containers use the external shared bridge. Production ingress and SSO/TLS must be supplied by the hosting platform.
+- Studio Compose service is opt-in through the `studio` profile; it is not a production-authenticated browser client. Configure an authenticated reverse proxy rather than exposing service credentials in the browser.
+- `.dockerignore` excludes local `.env`, downloaded models, Python venvs, JavaScript dependencies and recorded audio from image build contexts.

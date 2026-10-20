@@ -8,7 +8,13 @@ data:
   STT_MODEL_DIR: /opt/models/stt
   STT_CATALOG_DIR: /app/configs/models
   STT_DEVICE: cpu
+  STT_CPU_THREADS: '4'
   STT_OFFLINE: 'true'
+  STT_WARMUP: 'true'
+  STT_REQUIRE_MODEL_PIN: 'true'
+  STT_VERIFY_HASHES: 'true'
+  APP_INFERENCE_CONCURRENCY: '1'
+  STREAM_MAX_SESSIONS: '2'
   APP_HOST: 0.0.0.0
   APP_PORT: '8080'
-# Supply APP_API_KEY from a Kubernetes Secret, not this ConfigMap.
+# APP_API_KEY comes from a Secret, never this ConfigMap.

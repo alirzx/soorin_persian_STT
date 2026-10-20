@@ -78,8 +78,11 @@ For Qwen, install `.[qwen]` and plan for significantly higher CPU RAM/latency. F
 # Download model onto host first, with STT_MODEL_DIR=./models/downloads in host .env
 soorin-models download --model shenava-koochik
 # then run backend+UI (Compose mounts models read-only)
+./scripts/deploy/preflight.sh
+./scripts/deploy/prepare-network.sh
 docker compose --env-file .env -f deploy/compose.yaml up --build -d
-# UI http://localhost:3000 | backend http://localhost:8080/docs
+# backend: http://127.0.0.1:8080 (not exposed on external host interfaces)
+# optional trusted-development UI: add --profile studio (localhost:3000)
 ```
 
 Docker copies `pyproject.toml`/Python package and installs `.[sherpa]`. To use Whisper/Qwen, build a specialized image with the relevant optional extras. The backend does not fetch models at request time.
@@ -127,6 +130,11 @@ The Shenava offline backbone is unchanged. Buffered WebSocket sessions use RMS e
 
 For multiple Soorin products in the same Docker network, create one shared network before Compose startup: `docker network create soorin-ai` (once); the service hostname is `stt-api`, with `http://stt-api:8080/v1/audio/transcriptions` for other containers attached to `soorin-ai`. Use a shared secret, trusted ingress, and private networking; do not rely on CORS as authentication. The development studio has no secret-injection mechanism and should not be exposed publicly.
 
-Brand logo slot: place your official SVG at `ui/public/brand/soorin-logo.svg`. The interface falls back to its standard voice symbol until that asset is present. Do not commit copyrighted corporate marks without permission.
+Brand logo: official PNG is bundled at `ui/public/brand/soorin-logo.png`; the UI uses an icon fallback if unavailable. Do not commit copyrighted corporate marks without permission.
 
 Resource model: a single CPU worker and bounded concurrency protect a single loaded ONNX model; these changes are not a validated capacity claim for multiple simultaneous real-world streams. Load testing on the target server is required. Native INT4 tract inference is outside this patch.
+
+
+## Deployment-ready configuration (October 2026)
+
+Docker build context excludes private .env, downloaded models, local virtual environments and audio artifacts. Compose defaults to a single API service with a shared external network and loopback-bound ports; `--profile studio` enables the unprivileged-network development Studio (not an authenticated product UI). See [deployment checklist](docs/DEPLOYMENT.md) before shipping. GitHub Actions checks the Docker image builds and Compose config, but **real runtime and simultaneous-user smoke tests remain required**.

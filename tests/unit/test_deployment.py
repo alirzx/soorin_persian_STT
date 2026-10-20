@@ -1,0 +1,33 @@
+"""Static deployment contracts; no Docker daemon or model download required."""
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_docker_build_context_excludes_secrets_and_weights():
+    ignored = (ROOT / ".dockerignore").read_text().splitlines()
+    required = {".env", ".git", ".venv", "models/downloads", "ui/node_modules", "ui/dist"}
+    assert required.issubset(set(ignored))
+
+
+def test_compose_protects_host_ports_and_shares_network():
+    compose = yaml.safe_load((ROOT / "deploy/compose.yaml").read_text())
+    api = compose["services"]["stt-api"]
+    studio = compose["services"]["stt-ui"]
+    assert api["ports"][0].startswith("${STT_BIND_HOST:-127.0.0.1}:")
+    assert studio["ports"][0].startswith("${UI_BIND_HOST:-127.0.0.1}:")
+    assert "studio" in studio["profiles"]
+    assert studio["depends_on"]["stt-api"]["condition"] == "service_healthy"
+    assert "soorin-ai" in api["networks"]
+    assert compose["networks"]["soorin-ai"]["external"] is True
+    assert api["read_only"] is True
+    assert api["volumes"][0].endswith(":ro")
+
+
+def test_kubernetes_read_only_container_has_writable_temp():
+    deployment = yaml.safe_load((ROOT / "deploy/kubernetes/deployment.yaml").read_text())
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert container["securityContext"]["readOnlyRootFilesystem"]
+    assert any(volume["mountPath"] == "/tmp" for volume in container["volumeMounts"])

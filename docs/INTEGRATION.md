@@ -38,3 +38,5 @@ ONNX execution may finish asynchronously. The service holds the inference
 slot until the native worker exits to prevent CPU oversubscription.
 Overloaded slots return 429. Model readiness returns 503 when unavailable.
 Runtime metrics are at /metrics, intended for internal monitoring only.
+
+The backend is started alone by default; use Compose `--profile studio` for the local development UI. See `docs/DEPLOYMENT.md` for network and authentication requirements.

@@ -1,6 +1,11 @@
+# Single warm-loaded CPU model, shared by Soorin products over the soorin-ai network.
+# Prepare the external network with: ./scripts/deploy/prepare-network.sh
+# Start only the API by default; add --profile studio for the local React UI.
 name: soorin-stt
+
 services:
   stt-api:
+    image: ${SOORIN_STT_API_IMAGE:-soorin-stt-api:local}
     build:
       context: ..
       dockerfile: deploy/docker/Dockerfile
@@ -12,42 +17,61 @@ services:
       STT_MODEL_DIR: /opt/models/stt
       STT_CATALOG_DIR: /app/configs/models
       STT_OFFLINE: "true"
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
     volumes:
       - ../models/downloads:/opt/models/stt:ro
+    # Do not expose the unauthenticated service on the LAN by default.
+    # Other product containers use http://stt-api:8080 within soorin-ai.
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${STT_BIND_HOST:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    init: true
+    stop_grace_period: 40s
     cpus: ${DOCKER_STT_CPUS:-4.0}
-    mem_limit: ${DOCKER_STT_MEMORY_LIMIT:-2g}
+    mem_limit: ${DOCKER_STT_MEMORY_LIMIT:-3g}
+    memswap_limit: ${DOCKER_STT_MEMORY_SWAP_LIMIT:-3g}
     pids_limit: 256
     read_only: true
     tmpfs:
-      - /tmp:rw,nosuid,size=128m
+      - /tmp:rw,nosuid,nodev,size=128m,mode=1777
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"]
-      interval: 15s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"]
+      interval: 20s
+      timeout: 5s
       retries: 5
-      start_period: 45s
+      start_period: 60s
     restart: unless-stopped
     networks:
       - soorin-ai
+
+  # Development/trusted-internal studio only. Does not manage API keys or SSO.
   stt-ui:
+    profiles: ["studio"]
+    image: ${SOORIN_STT_UI_IMAGE:-soorin-stt-ui:local}
     build:
       context: ..
       dockerfile: deploy/docker/Dockerfile.ui
     ports:
-      - "${UI_PORT:-3000}:80"
+      - "${UI_BIND_HOST:-127.0.0.1}:${UI_PORT:-3000}:80"
     depends_on:
-      - stt-api
+      stt-api:
+        condition: service_healthy
     read_only: true
     tmpfs:
-      - /var/cache/nginx
-      - /var/run
+      - /var/cache/nginx:rw,nosuid,nodev,size=32m
+      - /var/run:rw,nosuid,nodev,size=8m
+      - /tmp:rw,nosuid,nodev,size=16m
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
     networks:
       - soorin-ai
