@@ -9,7 +9,7 @@ def test_liveness_and_batch(fake_app):
         assert client.get('/health/ready').status_code==200
         assert client.get('/v1/models/current').json()['streaming_mode']=='native'
         buf=BytesIO();sf.write(buf,np.zeros(16000,dtype=np.float32),16000,format='WAV')
-        resp=client.post('/v1/audio/transcriptions',files={'file':('test.wav',buf.getvalue(),'audio/wav')},data={'domain':'general'})
+        resp=client.post('/v1/audio/transcriptions',files={'file':('test.wav',buf.getvalue(),'audio/wav')},data={'domain':'general','normalize':'true'})
         assert resp.status_code==200,resp.text
         body=resp.json()
         assert body['text']=='سلام دنيا'

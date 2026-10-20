@@ -1,7 +1,7 @@
 name: Container build and deployment config
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/deployment-readiness']
     paths:
       - 'deploy/**'
       - 'src/**'
