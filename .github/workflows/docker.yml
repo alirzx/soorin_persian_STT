@@ -36,6 +36,10 @@ jobs:
           docker compose --env-file .env -f deploy/compose.yaml config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
+      - name: Verify internal HTTPS gateway syntax
+        run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal --adapter caddyfile >/dev/null
+      - name: Verify certificate-file HTTPS gateway syntax
+        run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.files --adapter caddyfile >/dev/null
       - name: Build backend image
         run: docker build -f deploy/docker/Dockerfile -t soorin-stt-api:test .
       - name: Build studio image
