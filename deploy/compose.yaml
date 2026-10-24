@@ -110,6 +110,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # Official Caddy binary has cap_net_bind_service file capability; execution
+    # fails with EPERM/exit 126 if it is absent from the bounding set.
+    cap_add:
+      - NET_BIND_SERVICE
     restart: unless-stopped
     networks:
       - soorin-ai
