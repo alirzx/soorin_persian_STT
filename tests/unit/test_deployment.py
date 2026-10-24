@@ -48,3 +48,9 @@ def test_caddy_binary_file_capability_is_in_bounding_set():
     assert gateway["cap_drop"] == ["ALL"]
     assert gateway["cap_add"] == ["NET_BIND_SERVICE"]
     assert gateway["security_opt"] == ["no-new-privileges:true"]
+
+
+def test_ip_https_default_sni_is_explicit_for_docker_nat():
+    config = (ROOT / "deploy/caddy/Caddyfile.internal").read_text()
+    assert "default_sni {$STT_HTTPS_HOST}" in config
+    assert "tls internal" in config
