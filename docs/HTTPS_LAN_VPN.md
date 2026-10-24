@@ -1,113 +1,68 @@
-# Secure LAN/VPN microphone access (Server 62)
+# HTTPS Studio on LAN/VPN (no shared password required)
 
-## Why the microphone failed
+Plain IP HTTP (`http://192.168.0.62:3015`) is not a browser secure context.
+Microphone access requires trusted HTTPS. The gateway is not a bypass around TLS trust.
 
-Browser `navigator.mediaDevices.getUserMedia` is **undefined on ordinary HTTP IP origins**
-such as `http://192.168.0.62:3015`. File upload can succeed, but live microphone
-cannot. Changing React code or adding more Docker bridge networks cannot bypass the
-browser security policy.
+## Deployment modes
+- Local developer: HTTP on localhost using `--profile studio`, microphone available.
+- LAN/VPN: HTTPS with `--profile studio --profile secure`, `STT_AUTH_MODE=none`.
+- Optional organization login: `STT_AUTH_MODE=basic` with a bcrypt hash (or deploy a separately audited SSO gateway).
+- TLS `internal`: Caddy internal CA; distribute and trust its **public root CA** on browsers.
+- TLS `files`: mount `fullchain.pem` and `privkey.pem`, provisioned by organizational PKI or public ACME DNS-01. For broadly trusted access without per-device CA installation, use a domain with a publicly trusted certificate and internal DNS pointing at the VPN/LAN address. Certificate issuance is external to this deployment.
 
-Use an HTTPS origin with a **browser-trusted certificate** (or use localhost for
-individual SSH-tunnel testing). The optional `secure` Compose profile adds **Caddy
-with an internal certificate authority**, HTTP Basic Auth and persistent cert storage,
-without modifying the offline STT model or the existing containers of other projects.
-
-Architecture: **LAN/VPN browser -> HTTPS :3443 -> Caddy (TLS/auth) -> Nginx UI :80 ->
-FastAPI :8080**. This uses secure `wss://` on the same HTTPS origin. All three STT
-containers share only the dedicated external Docker bridge `soorin-ai`.
-The original `studio` profile remains available for localhost development.
-
-## Server 62 setup
-
-Only touch `/srv/soorin-stt`. Do not run Docker prune, stop Copilot or edit other
-Compose projects. In `/srv/soorin-stt`, after `git pull --ff-only origin main`:
-
+## Server 62
 ```bash
 cd /srv/soorin-stt
+git pull --ff-only origin main
 cp -p .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
-# Set these in .env, preserving all audio/model values:
+# Preserve the existing model revision, resource limits and audio settings.
+# Set these in .env:
 # UI_BIND_HOST=127.0.0.1
 # STT_BIND_HOST=127.0.0.1
-# STT_HTTPS_HOST=192.168.0.62
+# STT_HTTPS_HOST=192.168.0.62   # or internal DNS hostname
 # STT_HTTPS_BIND_HOST=192.168.0.62
 # STT_HTTPS_PORT=3443
-# STT_HTTPS_USER=stt
-
-# Generate an auth hash without putting the plaintext in shell history:
-read -rsp 'Studio HTTPS password: ' STT_PW; echo
-HASH="$(printf '%s\n' "$STT_PW" | sudo docker run --rm -i caddy:2.10-alpine caddy hash-password --algorithm bcrypt)"
-unset STT_PW
-printf '%s\n' "$HASH"
-# Copy the printed hash into .env as STT_HTTPS_PASSWORD_HASH='<bcrypt hash>'
-# The single quotes are important: Compose must not interpolate bcrypt's dollar signs.
-# Do not commit .env or publish the hash.
-unset HASH
-
+# STT_TLS_MODE=internal          # or files
+# STT_AUTH_MODE=none             # no shared password
+# STT_TLS_CERT_DIR=../certs
+# STT_HTTPS_USER=
+# STT_HTTPS_PASSWORD_HASH=
 python3 scripts/deploy/check_https.py
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
+sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio build stt-ui
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure up -d --no-build
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure ps
 ```
 
-Caddy is pulled from Docker Hub; the local STT API/UI images do **not** need rebuilding
-unless the React microphone warning changed. Only the STT UI needs recreation for the
-HTTP host binding change. `up -d` will reconcile only the STT Compose project;
-the 438 MB model remains on the same read-only host mount and is not downloaded.
+For `files` mode, the certificate/key must exist outside Git in the configured directory *before* preflight. Keep private keys restricted and renew certificates using an external PKI/ACME workflow; restart only `stt-https` to pick up replacement keys.
 
-Secure URL: **https://192.168.0.62:3443/**
-
-## Distribute and trust the internal CA
-
-The root certificate is in the **persistent** volume `stt_https_data`; keep this
-volume across redeploys and backups. Never use `down -v` or rotate the CA
-unintentionally. Export only the *public root certificate*; never copy private CA
-keys to client machines:
-
+For `internal` mode, Caddy stores the CA in the persistent `stt_https_data` volume. Export **only the public CA root**, verify SHA256 fingerprint out-of-band, and install it as trusted on managed clients:
 ```bash
 CID="$(sudo docker compose --env-file .env -f deploy/compose.yaml --profile secure ps -q stt-https)"
 sudo docker cp "$CID:/data/caddy/pki/authorities/local/root.crt" /tmp/soorin-stt-root-ca.crt
 openssl x509 -in /tmp/soorin-stt-root-ca.crt -noout -fingerprint -sha256
 ```
+Do NOT copy private CA keys; do NOT use `docker compose down -v` to rotate persistent CA storage. Verify browsers actually trust the cert; simply bypassing a certificate warning is insufficient.
 
-Distribute the root certificate to authorized devices by your organization's secure
-device-management channel. Verify the **SHA-256 fingerprint out of band**. Install it
-as a trusted CA on each authorized device/browser (Firefox may use its own certificate
-store). This grants broad trust to a CA: organizational approval and safe private-key
-management are required. Simply clicking through an untrusted certificate warning is
-not a reliable way to enable microphone capture.
+## Security and smoke checks
 
-Once trust is installed, open the secure URL, authenticate when prompted, allow
-microphone permission, then test REST, upload and the live WebSocket. The browser
-should report `window.isSecureContext === true`, a defined
-`navigator.mediaDevices?.getUserMedia`, and a successful `wss://` handshake.
-
-For a larger organization, **prefer a real internal DNS name with a certificate
-trusted by managed clients, or a publicly-trusted organizational domain with
-managed HTTPS/SSO ingress**, rather than distributing an ad-hoc CA.
-
-## Smoke tests and security checks
+Access should be restricted by organization firewall/VPN policy to TCP/3443.
+**No shared login does not mean public Internet access is appropriate.**
+The default API and plain UI bindings must remain loopback; otherwise the HTTPS ingress could be bypassed. Docker published ports can bypass standard UFW policies, so verify host/network edge policy.
 
 ```bash
-# Host-side service status. No rebuild necessary unless React image changed.
-sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure ps
 curl -fsS http://127.0.0.1:8080/health/ready
-# HTTPS must require credentials (expect HTTP 401 without auth):
-curl -sk -o /dev/null -w '%{http_code}\n' https://192.168.0.62:3443/
-# After exporting root CA, verify server TLS chain. No -k:
-curl --cacert /tmp/soorin-stt-root-ca.crt -o /dev/null -w '%{http_code}\n' https://192.168.0.62:3443/
-# Expect 401 without credentials; use the browser to authenticate and test.
-sudo ss -ltnp | grep -E ':(3015|3443|8080)\\b'
+# Internal CA only for server-side smoke testing, not browser trust:
+curl -sk https://192.168.0.62:3443/api/health/ready
+# Check TLS certificate trust without -k once the CA is exported:
+curl --cacert /tmp/soorin-stt-root-ca.crt -fsS https://192.168.0.62:3443/api/health/ready
+sudo ss -ltnp | grep -E ':(3443|3015|8080)\b'
 ```
+Expected ports: `192.168.0.62:3443`, `127.0.0.1:3015`, `127.0.0.1:8080`.
+Open `https://192.168.0.62:3443` from trusted VPN/LAN devices. In browser Console, verify `window.isSecureContext === true` and `typeof navigator.mediaDevices?.getUserMedia === 'function'`. Verify `wss://` handshake and live transcript.
 
-Expected bindings: `127.0.0.1:3015` (HTTP UI, **not** LAN),
-`127.0.0.1:8080` (API, **not** LAN), and
-`192.168.0.62:3443` (HTTPS only). No container in another Compose project is
-restarted or reconfigured. Confirm VPN routing and firewall policy restrict 3443
-to intended users. Publishing Docker ports can bypass ordinary UFW expectations.
+Operational metrics/docs are not exposed via the Studio UI proxy. Use loopback/container access for operator diagnostics. Model is downloaded only once, on a read-only runtime mount.
 
-**Authentication limitation:** This is a trusted-internal v1 gateway with a shared
-Basic Auth credential. Test authenticated WebSocket handshakes across Firefox and
-Chrome before general rollout. Production/SSO requires identity-aware per-user auth,
-access controls and audit, plus independently reviewed security settings.
-The existing FastAPI API-key mechanism cannot simply be enabled for browser use
-without a browser-safe server-side credential strategy.
+## Caveats
+- `STT_AUTH_MODE=none` is intended only for trusted internal users behind a verified firewall/VPN. It does not implement user identity, quotas by user, or audit.
+- `APP_ENV=production` currently requires an `APP_API_KEY`; browsers do not send that key. Enable production only with an authenticated trusted service gateway/BFF that injects a protected server-side API key. This profile is currently a restricted intranet demo mode, not audited multi-tenant production SSO.

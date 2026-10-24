@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from soorin_stt.audio.formats import pcm_s16le_to_float
 from soorin_stt.core.exceptions import Overloaded, STTError
+from soorin_stt.core.origin import origin_allowed
 from soorin_stt.core.inference import run_native
 from soorin_stt.observability.metrics import (
     ACTIVE, FINAL, PARTIAL, STREAM_AUDIO, STREAM_ERRORS, STREAM_INFERENCE,
@@ -38,6 +39,9 @@ def _text(text: str, session: StreamStart, settings) -> tuple[str, list]:
 async def stream(ws: WebSocket):
     service = ws.app.state.service
     settings = service.settings
+    if not origin_allowed(ws.headers.get("origin"), ws.headers.get("host"), settings.allowed_origins):
+        await ws.close(code=1008, reason="untrusted browser origin")
+        return
     if settings.app_api_key and not hmac.compare_digest(
         ws.headers.get("x-api-key", ""), settings.app_api_key
     ):

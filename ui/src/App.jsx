@@ -1,4 +1,4 @@
-import { microphoneAvailability } from './microphone.js'
+import { microphoneAvailability, microphoneError } from './microphone.js'
 import { useCallback,useEffect,useRef,useState } from 'react'
 import { Activity,AudioLines,Check,ChevronDown,Clipboard,FileAudio,Headphones,Info,Mic,Pause,Play,Radio,RefreshCcw,Shield,Square,UploadCloud,Volume2,X,Zap } from 'lucide-react'
 const endpoint='/api'
@@ -83,7 +83,7 @@ export default function App(){
     const mute=context.createGain();mute.gain.value=0;worklet.current.connect(mute);mute.connect(context.destination)
     media.current=localStream;setRecording(true)
     const started=Date.now();clock.current=setInterval(()=>setElapsed(Math.round((Date.now()-started)/1000)),250)
-  }catch(ex){setError(ex.message||'Microphone unavailable');localStream?.getTracks().forEach(t=>t.stop());context?.close();ws?.close();setConnection('error')}
+  }catch(ex){setError(microphoneError(ex));localStream?.getTracks().forEach(t=>t.stop());context?.close();ws?.close();setConnection('error')}
  }
  async function stopMic(){
   setRecording(false);setConnection('finalizing');clearInterval(clock.current)

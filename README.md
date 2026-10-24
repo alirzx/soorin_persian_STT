@@ -156,3 +156,14 @@ HTTPS ingress with an internal CA, shared Basic authentication and persisted
 certificates; keep plain HTTP UI/API bound to loopback. **Clients must trust
 the CA** for live microphone; `wss://` then proxies through existing Nginx to
 FastAPI. See [HTTPS LAN/VPN deployment](docs/HTTPS_LAN_VPN.md).
+
+
+### Local and password-free VPN/LAN microphone access
+
+The optional Caddy HTTPS ingress supports `STT_AUTH_MODE=none` on a trusted LAN/VPN
+without a shared login. Choose `STT_TLS_MODE=internal` (clients trust internal CA)
+or `STT_TLS_MODE=files` (mount externally provisioned certificate and key, including
+a publicly trusted domain certificate). Local `http://localhost` remains supported.
+The browser must trust HTTPS for microphone capture. Keep HTTP UI/API loopback-only
+and restrict TCP/3443 at the organization VPN/firewall. See
+[HTTPS LAN/VPN guide](docs/HTTPS_LAN_VPN.md).

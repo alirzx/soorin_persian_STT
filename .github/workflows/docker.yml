@@ -35,6 +35,7 @@ jobs:
           cp .env.example .env
           docker compose --env-file .env -f deploy/compose.yaml config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio config --quiet
+          docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
       - name: Build backend image
         run: docker build -f deploy/docker/Dockerfile -t soorin-stt-api:test .
       - name: Build studio image
