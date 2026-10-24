@@ -32,3 +32,7 @@ benchmarks/results
 *.log
 *.sqlite3
 .DS_Store
+
+# Exclude private TLS keys / certificates from build contexts
+certs
+deploy/certs

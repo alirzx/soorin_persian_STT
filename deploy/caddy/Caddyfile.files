@@ -1,0 +1,24 @@
+{
+    admin off
+    auto_https disable_redirects
+}
+# Externally provisioned TLS chain/key for an organizational hostname.
+https://{$STT_HTTPS_HOST}:8443 {
+    tls /certs/fullchain.pem /certs/privkey.pem
+    import /etc/caddy/auth.{$STT_AUTH_MODE}.caddy
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        X-Frame-Options DENY
+        Permissions-Policy "microphone=(self)"
+    }
+
+    @private_api path /api/metrics /api/docs /api/redoc /api/openapi.json
+    respond @private_api 404
+
+    reverse_proxy stt-ui:80 {
+        header_up -Authorization
+        stream_timeout 15m
+    }
+}
