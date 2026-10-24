@@ -40,3 +40,11 @@ def test_https_gateway_defaults_match_preflight_and_preserve_loopback():
     assert gateway["environment"]["STT_AUTH_MODE"] == "${STT_AUTH_MODE:-none}"
     assert gateway["ports"][0].startswith("${STT_HTTPS_BIND_HOST:-127.0.0.1}:")
     assert "/certs:ro" in gateway["volumes"][1]
+
+
+def test_caddy_binary_file_capability_is_in_bounding_set():
+    compose = yaml.safe_load((ROOT / "deploy/compose.yaml").read_text())
+    gateway = compose["services"]["stt-https"]
+    assert gateway["cap_drop"] == ["ALL"]
+    assert gateway["cap_add"] == ["NET_BIND_SERVICE"]
+    assert gateway["security_opt"] == ["no-new-privileges:true"]
