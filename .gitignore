@@ -32,3 +32,7 @@ ui/dist/
 
 # System
 .DS_Store
+
+# Deployment TLS material must never be committed
+certs/
+deploy/certs/

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from soorin_stt.api import health,metrics,transcription,websocket
 from soorin_stt.core.config import Settings,get_settings
 from soorin_stt.core.lifecycle import ServiceState
+from soorin_stt.core.origin import origin_allowed
 from soorin_stt.core.logging import setup_logging
 from soorin_stt.core.exceptions import STTError
 from soorin_stt.api.errors import handle_stt_error
@@ -25,6 +26,8 @@ def create_app(settings: Settings|None=None) -> FastAPI:
     app.add_exception_handler(STTError,handle_stt_error)
     @app.middleware('http')
     async def key_guard(req:Request,call_next):
+        if not origin_allowed(req.headers.get("origin"), req.headers.get("host"), settings.allowed_origins):
+            return JSONResponse({"error":{"code":"origin_forbidden","message":"Untrusted browser origin"}},status_code=403)
         public={'/health/live','/health/ready','/version'}
         if settings.app_api_key and req.url.path not in public and req.headers.get('x-api-key')!=settings.app_api_key:
             return JSONResponse({'error':{'code':'unauthorized','message':'Missing/invalid X-API-Key'}},status_code=401)

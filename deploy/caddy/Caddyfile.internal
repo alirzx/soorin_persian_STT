@@ -3,16 +3,10 @@
     skip_install_trust
     auto_https disable_redirects
 }
-
-# IP-based intranet/VPN HTTPS. Caddy creates and renews an internal-CA cert.
-# Its ROOT CERT must be trusted by each user's browser/OS before mic access works.
+# Private-IP mode; client OS/browser must trust Caddy's internal CA.
 https://{$STT_HTTPS_HOST}:8443 {
     tls internal
-
-    # Whole-origin auth includes SPA, /api and WebSocket handshakes.
-    basic_auth {
-        {$STT_HTTPS_USER} {$STT_HTTPS_PASSWORD_HASH}
-    }
+    import /etc/caddy/auth.{$STT_AUTH_MODE}.caddy
 
     header {
         X-Content-Type-Options nosniff
@@ -21,8 +15,10 @@ https://{$STT_HTTPS_HOST}:8443 {
         Permissions-Policy "microphone=(self)"
     }
 
+    @private_api path /api/metrics /api/docs /api/redoc /api/openapi.json
+    respond @private_api 404
+
     reverse_proxy stt-ui:80 {
-        # Never send the gateway Basic credentials to Nginx/FastAPI.
         header_up -Authorization
         stream_timeout 15m
     }

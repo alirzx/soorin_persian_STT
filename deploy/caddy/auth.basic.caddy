@@ -1,0 +1,4 @@
+# Opt-in basic authentication.
+basic_auth {
+    {$STT_HTTPS_USER} {$STT_HTTPS_PASSWORD_HASH}
+}
