@@ -1,6 +1,8 @@
 {
     admin off
     skip_install_trust
+    # IP-address clients send no TLS SNI; Docker NAT hides the public IP from Caddy.
+    default_sni {$STT_HTTPS_HOST}
     auto_https disable_redirects
 }
 # Private-IP mode; client OS/browser must trust Caddy's internal CA.
