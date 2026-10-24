@@ -44,6 +44,19 @@ def validate(values: dict[str, str], root: Path = ROOT) -> None:
         fail("STT_TLS_MODE must be internal or files")
     if auth not in {"none", "basic"}:
         fail("STT_AUTH_MODE must be none or basic")
+    try:
+        port_text = values.get("STT_HTTPS_PORT", "3443")
+        if not port_text.isdigit():
+            raise ValueError("not an integer")
+        port = int(port_text)
+        if not 1 <= port <= 65535:
+            raise ValueError("out of range")
+        api_port = int(values.get("APP_PORT", "8080"))
+        ui_port = int(values.get("UI_PORT", "3015"))
+    except (ValueError, TypeError):
+        fail("STT_HTTPS_PORT, APP_PORT and UI_PORT must be valid TCP port numbers")
+    if port in {api_port, ui_port}:
+        fail("STT_HTTPS_PORT cannot equal the published API or HTTP UI port")
     if auth == "basic":
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", values.get("STT_HTTPS_USER", "")):
             fail("STT_HTTPS_USER is invalid")

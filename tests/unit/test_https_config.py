@@ -42,3 +42,15 @@ def test_origin_rules():
     assert origin_allowed("http://localhost:5173","localhost:8080",["http://localhost:5173"])
     assert not origin_allowed("https://evil.example.com","stt.example.com",[])
     assert not origin_allowed("https://stt.example.com:3443","stt.example.com:8080",[])
+
+@pytest.mark.parametrize("value", ["0", "65536", "not-a-port", "-1"])
+def test_invalid_https_port_fails(value):
+    with pytest.raises(SystemExit, match="HTTPS preflight failed"):
+        module.validate(config(STT_HTTPS_PORT=value))
+
+def test_https_cannot_reuse_http_port():
+    with pytest.raises(SystemExit, match="cannot equal"):
+        module.validate(config(STT_HTTPS_PORT="3015"))
+
+def test_omitted_auth_tls_keys_match_compose_defaults():
+    module.validate(config(STT_TLS_MODE="internal", STT_AUTH_MODE="none"))

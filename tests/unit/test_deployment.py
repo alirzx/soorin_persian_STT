@@ -31,3 +31,12 @@ def test_kubernetes_read_only_container_has_writable_temp():
     container = deployment["spec"]["template"]["spec"]["containers"][0]
     assert container["securityContext"]["readOnlyRootFilesystem"]
     assert any(volume["mountPath"] == "/tmp" for volume in container["volumeMounts"])
+
+def test_https_gateway_defaults_match_preflight_and_preserve_loopback():
+    compose = yaml.safe_load((ROOT / "deploy/compose.yaml").read_text())
+    gateway = compose["services"]["stt-https"]
+    assert "secure" in gateway["profiles"]
+    assert gateway["environment"]["STT_TLS_MODE"] == "${STT_TLS_MODE:-internal}"
+    assert gateway["environment"]["STT_AUTH_MODE"] == "${STT_AUTH_MODE:-none}"
+    assert gateway["ports"][0].startswith("${STT_HTTPS_BIND_HOST:-127.0.0.1}:")
+    assert "/certs:ro" in gateway["volumes"][1]

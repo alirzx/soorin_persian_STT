@@ -1,7 +1,7 @@
 name: Container build and deployment config
 on:
   push:
-    branches: [main, 'codex/deployment-readiness']
+    branches: [main]
     paths:
       - 'deploy/**'
       - 'src/**'
@@ -13,6 +13,7 @@ on:
       - '.github/workflows/docker.yml'
       - 'scripts/deploy/**'
       - 'tests/unit/test_deployment.py'
+      - 'tests/unit/test_https_config.py'
   pull_request:
     paths:
       - 'deploy/**'
@@ -36,6 +37,7 @@ jobs:
           docker compose --env-file .env -f deploy/compose.yaml config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
+          python3 scripts/deploy/check_https.py
       - name: Verify internal HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal --adapter caddyfile >/dev/null
       - name: Verify certificate-file HTTPS gateway syntax

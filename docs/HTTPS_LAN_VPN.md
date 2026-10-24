@@ -15,6 +15,11 @@ Microphone access requires trusted HTTPS. The gateway is not a bypass around TLS
 cd /srv/soorin-stt
 git pull --ff-only origin main
 cp -p .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
+# Upgrade an existing .env without discarding the pinned model revision, CPU limits or secrets.
+# Legacy HTTPS .env files may be missing these options.
+for key in STT_TLS_MODE STT_AUTH_MODE STT_TLS_CERT_DIR; do
+  grep -q "^$key=" .env || grep "^$key=" .env.example >> .env
+done
 # Preserve the existing model revision, resource limits and audio settings.
 # Set these in .env:
 # UI_BIND_HOST=127.0.0.1
@@ -28,6 +33,7 @@ cp -p .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
 # STT_HTTPS_USER=
 # STT_HTTPS_PASSWORD_HASH=
 python3 scripts/deploy/check_https.py
+# Ensure TCP/3443 is accessible ONLY to authorized LAN/VPN ranges before publishing it.
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio build stt-ui
 sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure up -d --no-build
@@ -66,3 +72,17 @@ Operational metrics/docs are not exposed via the Studio UI proxy. Use loopback/c
 ## Caveats
 - `STT_AUTH_MODE=none` is intended only for trusted internal users behind a verified firewall/VPN. It does not implement user identity, quotas by user, or audit.
 - `APP_ENV=production` currently requires an `APP_API_KEY`; browsers do not send that key. Enable production only with an authenticated trusted service gateway/BFF that injects a protected server-side API key. This profile is currently a restricted intranet demo mode, not audited multi-tenant production SSO.
+
+## Compatibility and configuration verification
+
+`STT_TLS_MODE` and `STT_AUTH_MODE` are optional in legacy `.env` files; Compose
+and preflight both default to `internal` and `none`, respectively. Add the
+explicit keys using the migration commands above so operator intent is visible.
+Never overwrite the server's complete `.env` with `.env.example`: doing so
+would discard its pinned Shenava revision. The HTTPS bind port must differ
+from the published API and HTTP Studio ports.
+
+Run `docker compose ... config --quiet` and `python3 scripts/deploy/check_https.py`
+before starting the secure profile. A successful configuration check does not
+prove certificate-chain trust on other browsers, VPN reachability, or working
+microphone permissions; validate these separately on client devices.

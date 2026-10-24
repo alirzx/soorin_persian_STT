@@ -83,6 +83,10 @@ services:
     image: caddy:2.10-alpine
     env_file:
       - ../.env
+    # Make legacy .env files behave consistently with HTTPS preflight defaults.
+    environment:
+      STT_TLS_MODE: ${STT_TLS_MODE:-internal}
+      STT_AUTH_MODE: ${STT_AUTH_MODE:-none}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
