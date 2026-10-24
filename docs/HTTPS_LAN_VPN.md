@@ -86,3 +86,23 @@ Run `docker compose ... config --quiet` and `python3 scripts/deploy/check_https.
 before starting the secure profile. A successful configuration check does not
 prove certificate-chain trust on other browsers, VPN reachability, or working
 microphone permissions; validate these separately on client devices.
+
+## Caddy TLS alert on raw IP behind Docker (SNI)
+
+Browsers and curl do not normally send SNI for an IP-address URL. With Docker
+published-port NAT, Caddy can see the container IP rather than the server's
+host IP and fail certificate selection during TLS handshake. The internal CA
+configuration sets `default_sni {$STT_HTTPS_HOST}` so non-SNI requests use
+the issued certificate for that host address. The Docker CI workflow tests a
+TLS handshake without SNI through a mapped host port. Use both Compose profiles
+for all inspection commands, because the HTTPS service depends on `stt-ui`:
+
+```bash
+sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure logs --tail=100 stt-https
+sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure up -d --no-deps --no-build --force-recreate stt-https
+curl -kfsS https://192.168.0.62:3443/api/health/ready
+```
+
+A failed TLS handshake is different from a certificate trust failure. The
+latter requires installation of the local CA root certificate or a publicly
+trusted domain certificate; `-k` is diagnostics-only and not a browser fix.
