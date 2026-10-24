@@ -42,6 +42,36 @@ jobs:
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal --adapter caddyfile >/dev/null
       - name: Verify certificate-file HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.files --adapter caddyfile >/dev/null
+      - name: Test IP-address HTTPS handshake behind Docker published port
+        run: |
+          set -eu
+          docker run --name soorin-stt-caddy-ip-smoke --rm -d \
+            -p 127.0.0.1:19443:8443 \
+            -e STT_HTTPS_HOST=127.0.0.1 \
+            -e STT_AUTH_MODE=none \
+            -v "$PWD/deploy/caddy:/etc/caddy:ro" \
+            -v /data -v /config \
+            --read-only --tmpfs /tmp \
+            --cap-drop ALL --cap-add NET_BIND_SERVICE \
+            --security-opt no-new-privileges:true \
+            --entrypoint /bin/sh caddy:2.10-alpine \
+            -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal --adapter caddyfile'
+          trap 'docker logs soorin-stt-caddy-ip-smoke; docker rm -f soorin-stt-caddy-ip-smoke >/dev/null 2>&1 || true' EXIT
+          python3 - <<'PY'
+          import ssl, socket, time
+          context = ssl._create_unverified_context()
+          for i in range(25):
+              try:
+                  with socket.create_connection(('127.0.0.1',19443),timeout=3) as tcp:
+                      with context.wrap_socket(tcp) as tls:
+                          assert tls.version() in ('TLSv1.2','TLSv1.3')
+                  print('TLS handshake without SNI passed (IP through Docker NAT)')
+                  break
+              except (OSError, ssl.SSLError):
+                  if i == 24:
+                      raise
+                  time.sleep(1)
+          PY
       - name: Build backend image
         run: docker build -f deploy/docker/Dockerfile -t soorin-stt-api:test .
       - name: Build studio image
