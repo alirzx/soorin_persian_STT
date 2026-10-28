@@ -40,8 +40,8 @@ def validate(values: dict[str, str], root: Path = ROOT) -> None:
         fail("UI_BIND_HOST must remain loopback to prevent bypass of the HTTPS gateway")
     if values.get("STT_BIND_HOST", "127.0.0.1") not in {"127.0.0.1", "localhost"}:
         fail("STT_BIND_HOST must remain loopback")
-    if tls not in {"internal", "files"}:
-        fail("STT_TLS_MODE must be internal or files")
+    if tls not in {"internal", "internal-public", "files"}:
+        fail("STT_TLS_MODE must be internal, internal-public or files")
     if auth not in {"none", "basic"}:
         fail("STT_AUTH_MODE must be none or basic")
     try:
@@ -62,6 +62,15 @@ def validate(values: dict[str, str], root: Path = ROOT) -> None:
             fail("STT_HTTPS_USER is invalid")
         if not re.fullmatch(r"\$2[aby]\$\d\d\$[./A-Za-z0-9]{53}", values.get("STT_HTTPS_PASSWORD_HASH", "")):
             fail("STT_HTTPS_PASSWORD_HASH requires a bcrypt hash")
+    if tls == "internal-public":
+        public_host = values.get("STT_PUBLIC_HTTPS_HOST", "").strip()
+        if not public_host or public_host == host or public_host in {"0.0.0.0", "::", "*"}:
+            fail("internal-public needs a distinct STT_PUBLIC_HTTPS_HOST")
+        if ("://" in public_host or "/" in public_host or ":" in public_host
+                or not re.fullmatch(r"[A-Za-z0-9_.-]+", public_host)):
+            fail("STT_PUBLIC_HTTPS_HOST must be an IP or DNS name without port/scheme")
+        if auth != "basic":
+            fail("internal-public requires STT_AUTH_MODE=basic on both hostnames")
     if tls == "files":
         source = Path(values.get("STT_TLS_CERT_DIR", "../certs"))
         certs = (root / "deploy" / source).resolve() if not source.is_absolute() else source

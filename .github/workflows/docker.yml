@@ -40,6 +40,9 @@ jobs:
           python3 scripts/deploy/check_https.py
       - name: Verify internal HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal --adapter caddyfile >/dev/null
+      - name: Verify authenticated public-alias Caddy syntax
+        run: |
+          docker run --rm --network none -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_HTTPS_USER=smoke -e 'STT_HTTPS_PASSWORD_HASH=$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile >/dev/null
       - name: Verify certificate-file HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.files --adapter caddyfile >/dev/null
       - name: Test IP-address HTTPS handshake behind Docker published port
@@ -76,3 +79,21 @@ jobs:
         run: docker build -f deploy/docker/Dockerfile -t soorin-stt-api:test .
       - name: Build studio image
         run: docker build -f deploy/docker/Dockerfile.ui -t soorin-stt-ui:test .
+      - name: Smoke test public Host alias and Basic Auth against built Studio image
+        run: |
+          set -euo pipefail
+          docker network create soorin-stt-alias-smoke
+          trap 'docker logs soorin-stt-caddy-alias-smoke || true; docker rm -f soorin-stt-caddy-alias-smoke soorin-stt-ui-alias-smoke >/dev/null 2>&1 || true; docker network rm soorin-stt-alias-smoke >/dev/null 2>&1 || true' EXIT
+          docker run -d --name soorin-stt-ui-alias-smoke --network soorin-stt-alias-smoke --network-alias stt-ui soorin-stt-ui:test
+          PW="test-only-password-not-a-secret"
+          HASH="$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$PW")"
+          docker run -d --name soorin-stt-caddy-alias-smoke --network soorin-stt-alias-smoke -p 127.0.0.1:19444:8443 -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_HTTPS_USER=smoke -e "STT_HTTPS_PASSWORD_HASH=$HASH" -v "$PWD/deploy/caddy:/etc/caddy:ro" -v /data -v /config --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges:true --entrypoint /bin/sh caddy:2.10-alpine -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile'
+          for i in $(seq 1 30); do
+            code="$(curl -ks -o /dev/null -w '%{http_code}' -H 'Host:198.51.100.25:35942' https://127.0.0.1:19444/ || true)"
+            if [ "$code" = 401 ]; then break; fi
+            if [ "$i" = 30 ]; then echo "Public alias did not start as 401: $code"; exit 1; fi
+            sleep 1
+          done
+          [ "$(curl -ks -o /dev/null -w '%{http_code}' -H 'Host:127.0.0.1:3443' https://127.0.0.1:19444/)" = 401 ]
+          curl -kfsS -u "smoke:$PW" -H 'Host:198.51.100.25:35942' https://127.0.0.1:19444/ | grep -q '<div id="root"'
+          curl -kfsS -u "smoke:$PW" -H 'Host:127.0.0.1:3443' https://127.0.0.1:19444/ | grep -q '<div id="root"'

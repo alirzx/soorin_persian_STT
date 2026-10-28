@@ -50,6 +50,14 @@ def test_caddy_binary_file_capability_is_in_bounding_set():
     assert gateway["security_opt"] == ["no-new-privileges:true"]
 
 
+def test_public_alias_applies_auth_to_both_hostnames():
+    public = (ROOT / "deploy/caddy/Caddyfile.internal-public").read_text()
+    assert "https://{$STT_HTTPS_HOST}:8443, https://{$STT_PUBLIC_HTTPS_HOST}:8443" in public
+    assert "default_sni {$STT_HTTPS_HOST}" in public
+    assert "import /etc/caddy/auth.basic.caddy" in public
+    assert "reverse_proxy stt-ui:80" in public
+    assert "header_up -Authorization" in public
+
 def test_ip_https_default_sni_is_explicit_for_docker_nat():
     config = (ROOT / "deploy/caddy/Caddyfile.internal").read_text()
     assert "default_sni {$STT_HTTPS_HOST}" in config

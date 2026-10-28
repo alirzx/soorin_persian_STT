@@ -29,6 +29,24 @@ def test_unsafe_configuration_is_rejected(values):
     with pytest.raises(SystemExit,match="HTTPS preflight failed"):
         module.validate(config(**values))
 
+def test_public_alias_requires_auth_and_distinct_host():
+    with pytest.raises(SystemExit, match="requires STT_AUTH_MODE=basic"):
+        module.validate(config(STT_TLS_MODE="internal-public", STT_PUBLIC_HTTPS_HOST="93.118.154.255"))
+    with pytest.raises(SystemExit, match="distinct STT_PUBLIC_HTTPS_HOST"):
+        module.validate(config(STT_TLS_MODE="internal-public", STT_AUTH_MODE="basic",
+            STT_PUBLIC_HTTPS_HOST="192.168.0.62", STT_HTTPS_USER="test",
+            STT_HTTPS_PASSWORD_HASH="$2a$12$" + "a" * 53))
+    module.validate(config(STT_TLS_MODE="internal-public", STT_AUTH_MODE="basic",
+        STT_PUBLIC_HTTPS_HOST="93.118.154.255", STT_HTTPS_USER="test",
+        STT_HTTPS_PASSWORD_HASH="$2a$12$" + "a" * 53))
+
+@pytest.mark.parametrize("host", ["", "*", "https://93.118.154.255", "93.118.154.255:35942"])
+def test_public_alias_rejects_bad_host(host):
+    with pytest.raises(SystemExit, match="HTTPS preflight failed"):
+        module.validate(config(STT_TLS_MODE="internal-public", STT_AUTH_MODE="basic",
+            STT_PUBLIC_HTTPS_HOST=host, STT_HTTPS_USER="test",
+            STT_HTTPS_PASSWORD_HASH="$2a$12$" + "a" * 53))
+
 def test_files_mode_requires_certificate_files(tmp_path):
     with pytest.raises(SystemExit,match="Missing TLS"):
         module.validate(config(STT_TLS_MODE="files",STT_TLS_CERT_DIR=str(tmp_path)))

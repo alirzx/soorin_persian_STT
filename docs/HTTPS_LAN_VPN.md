@@ -106,3 +106,60 @@ curl -kfsS https://192.168.0.62:3443/api/health/ready
 A failed TLS handshake is different from a certificate trust failure. The
 latter requires installation of the local CA root certificate or a publicly
 trusted domain certificate; `-k` is diagnostics-only and not a browser fix.
+
+## Controlled public IP alias / NAT test (Oct 2026)
+
+The network gateway maps public TCP/35942 -> 192.168.0.62:3443 -> container TCP/8443.
+A blank HTTP 200 from Caddy occurred when an external Host did not match the configured
+private Host. Opt in to an authenticated dual-host route without rebuilding the STT UI/API:
+
+```dotenv
+STT_HTTPS_HOST=192.168.0.62
+STT_HTTPS_BIND_HOST=192.168.0.62
+STT_HTTPS_PORT=3443
+STT_TLS_MODE=internal-public
+STT_PUBLIC_HTTPS_HOST=93.118.154.255
+STT_AUTH_MODE=basic
+STT_HTTPS_USER=<username>
+STT_HTTPS_PASSWORD_HASH=<bcrypt-hash>
+```
+
+Generate a bcrypt hash using Caddy hash-password. Keep passwords out of Git.
+This mode authenticates BOTH the private and the public Host. Otherwise public
+clients can spoof the private HTTP Host to bypass a public-only auth rule.
+The original internal mode stays unchanged unless explicitly opted in.
+
+Critical TLS limitation: most IP-only HTTPS clients omit SNI. The existing
+global default_sni uses the PRIVATE IP; on the single forwarded TLS listener
+the PUBLIC IP may therefore receive a certificate whose SAN contains only
+the private IP. Additional host routing alone does NOT fix public certificate
+identity or trust. The internal Caddy CA is also not publicly trusted.
+This is for controlled testing only, not general unauthenticated Internet
+deployment. A managed organizational DNS hostname with a trusted certificate
+and a real public access gateway (or separate TLS listeners) is required
+for broad public-browser use without certificate warnings.
+
+Safe STT-only deployment after network-team approval:
+
+```bash
+cd /srv/soorin-stt
+python3 scripts/deploy/check_https.py
+sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
+sudo docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure up -d --no-deps --no-build --force-recreate stt-https
+```
+
+Public route checks from an authorized client (the -k flag is for diagnostic
+HTTP routing tests ONLY, not proof of trusted HTTPS):
+
+```bash
+curl -k -i https://93.118.154.255:35942/api/health/ready
+curl -k -u "<user>:<password>" -i https://93.118.154.255:35942/api/health/ready
+curl -k -i -H "Host: 192.168.0.62:3443" https://93.118.154.255:35942/api/health/ready
+```
+
+Expected: 401, JSON 200 after authentication, 401 for spoofed Host with no
+credentials. Confirm static JS/CSS assets and authenticated browser WSS
+streaming; HTTP 200 alone is insufficient. Since both hosts require Basic
+Auth in this mode, the private URL will also prompt for credentials.
+To roll back, restore STT_TLS_MODE=internal and recreate ONLY stt-https.
+Never remove the Caddy CA storage volume or restart unrelated services.

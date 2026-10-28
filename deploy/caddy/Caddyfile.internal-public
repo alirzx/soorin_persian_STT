@@ -1,0 +1,26 @@
+{
+    admin off
+    skip_install_trust
+    # IP-based TLS clients usually omit SNI; retain working private fallback.
+    default_sni {$STT_HTTPS_HOST}
+    auto_https disable_redirects
+}
+
+# Controlled public-IP trial. External :35942 maps to host :3443, container :8443.
+# Require Basic Auth on BOTH host aliases: public clients can spoof HTTP Host.
+https://{$STT_HTTPS_HOST}:8443, https://{$STT_PUBLIC_HTTPS_HOST}:8443 {
+    tls internal
+    import /etc/caddy/auth.basic.caddy
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        X-Frame-Options DENY
+        Permissions-Policy "microphone=(self)"
+    }
+    @private_api path /api/metrics /api/docs /api/redoc /api/openapi.json
+    respond @private_api 404
+    reverse_proxy stt-ui:80 {
+        header_up -Authorization
+        stream_timeout 15m
+    }
+}

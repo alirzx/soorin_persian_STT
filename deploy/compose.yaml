@@ -90,7 +90,7 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
-        case "$$STT_TLS_MODE" in internal|files) ;; *) echo 'Unsupported STT_TLS_MODE' >&2; exit 1 ;; esac;
+        case "$STT_TLS_MODE" in internal|internal-public|files) ;; *) echo 'Unsupported STT_TLS_MODE' >&2; exit 1 ;; esac;
         case "$$STT_AUTH_MODE" in none|basic) ;; *) echo 'Unsupported STT_AUTH_MODE' >&2; exit 1 ;; esac;
         exec caddy run --config "/etc/caddy/Caddyfile.$$STT_TLS_MODE" --adapter caddyfile
     ports:
