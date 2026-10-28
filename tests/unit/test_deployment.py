@@ -58,6 +58,14 @@ def test_public_alias_applies_auth_to_both_hostnames():
     assert "reverse_proxy stt-ui:80" in public
     assert "header_up -Authorization" in public
 
+def test_public_alias_smoke_models_required_network_dependency():
+    workflow = (ROOT / ".github/workflows/docker.yml").read_text()
+    assert "--network-alias stt-api" in workflow
+    assert "tests/fixtures/mock_stt_api.py:/mock_stt_api.py:ro" in workflow
+    assert "Mock stt-api is ready" in workflow
+    assert "/api/health/ready" in workflow
+    assert "case \"$STT_TLS_MODE\"" in (ROOT / "deploy/compose.yaml").read_text()
+
 def test_ip_https_default_sni_is_explicit_for_docker_nat():
     config = (ROOT / "deploy/caddy/Caddyfile.internal").read_text()
     assert "default_sni {$STT_HTTPS_HOST}" in config

@@ -14,6 +14,7 @@ on:
       - 'scripts/deploy/**'
       - 'tests/unit/test_deployment.py'
       - 'tests/unit/test_https_config.py'
+      - 'tests/fixtures/mock_stt_api.py'
   pull_request:
     paths:
       - 'deploy/**'
@@ -25,6 +26,7 @@ on:
       - '.env.example'
       - '.github/workflows/docker.yml'
       - 'scripts/deploy/**'
+      - 'tests/fixtures/mock_stt_api.py'
   workflow_dispatch:
 jobs:
   images:
@@ -83,7 +85,18 @@ jobs:
         run: |
           set -euo pipefail
           docker network create soorin-stt-alias-smoke
-          trap 'docker logs soorin-stt-caddy-alias-smoke || true; docker rm -f soorin-stt-caddy-alias-smoke soorin-stt-ui-alias-smoke >/dev/null 2>&1 || true; docker network rm soorin-stt-alias-smoke >/dev/null 2>&1 || true' EXIT
+          trap 'docker logs soorin-stt-api-alias-smoke || true; docker logs soorin-stt-ui-alias-smoke || true; docker logs soorin-stt-caddy-alias-smoke || true; docker rm -f soorin-stt-caddy-alias-smoke soorin-stt-ui-alias-smoke soorin-stt-api-alias-smoke >/dev/null 2>&1 || true; docker network rm soorin-stt-alias-smoke >/dev/null 2>&1 || true' EXIT
+          # Nginx resolves the stt-api upstream during startup. The test network
+          # must provide this DNS alias, even when only testing static UI routing.
+          docker run -d --name soorin-stt-api-alias-smoke --network soorin-stt-alias-smoke --network-alias stt-api -v "$PWD/tests/fixtures/mock_stt_api.py:/mock_stt_api.py:ro" python:3.12-alpine python -u /mock_stt_api.py
+          for i in $(seq 1 30); do
+            if docker exec soorin-stt-api-alias-smoke python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=2)" >/dev/null 2>&1; then
+              echo "Mock stt-api is ready"
+              break
+            fi
+            if [ "$i" = 30 ]; then docker logs soorin-stt-api-alias-smoke; exit 1; fi
+            sleep 1
+          done
           docker run -d --name soorin-stt-ui-alias-smoke --network soorin-stt-alias-smoke --network-alias stt-ui soorin-stt-ui:test
           # A started container is not necessarily an HTTP-ready Nginx process.
           # Previously the first authenticated request raced startup and returned 502.
@@ -111,3 +124,8 @@ jobs:
           [ "$(curl -ks -o /dev/null -w '%{http_code}' -H 'Host:127.0.0.1:3443' https://127.0.0.1:19444/)" = 401 ]
           curl -kfsS -u "smoke:$PW" -H 'Host:198.51.100.25:35942' https://127.0.0.1:19444/ | grep -q '<div id="root"'
           curl -kfsS -u "smoke:$PW" -H 'Host:127.0.0.1:3443' https://127.0.0.1:19444/ | grep -q '<div id="root"'
+          # Assert both Host aliases pass the real nginx /api/ reverse proxy.
+          for host in "198.51.100.25:35942" "127.0.0.1:3443"; do
+            curl -kfsS -u "smoke:$PW" -H "Host:$host" https://127.0.0.1:19444/api/health/ready | python3 -c "import json,sys; obj=json.load(sys.stdin); assert obj['ready'] is True and obj['model'] == 'ci-mock'"
+            [ "$(curl -ks -o /dev/null -w '%{http_code}' -H "Host:$host" https://127.0.0.1:19444/api/health/ready)" = 401 ]
+          done
