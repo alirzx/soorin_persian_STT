@@ -85,6 +85,20 @@ jobs:
           docker network create soorin-stt-alias-smoke
           trap 'docker logs soorin-stt-caddy-alias-smoke || true; docker rm -f soorin-stt-caddy-alias-smoke soorin-stt-ui-alias-smoke >/dev/null 2>&1 || true; docker network rm soorin-stt-alias-smoke >/dev/null 2>&1 || true' EXIT
           docker run -d --name soorin-stt-ui-alias-smoke --network soorin-stt-alias-smoke --network-alias stt-ui soorin-stt-ui:test
+          # A started container is not necessarily an HTTP-ready Nginx process.
+          # Previously the first authenticated request raced startup and returned 502.
+          for i in $(seq 1 30); do
+            if docker exec soorin-stt-ui-alias-smoke wget -q -O /dev/null http://127.0.0.1:80/ 2>/dev/null; then
+              echo "Studio Nginx is ready"
+              break
+            fi
+            if [ "$i" = 30 ]; then
+              docker logs soorin-stt-ui-alias-smoke
+              echo "Studio Nginx failed to become ready"
+              exit 1
+            fi
+            sleep 1
+          done
           PW="test-only-password-not-a-secret"
           HASH="$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$PW")"
           docker run -d --name soorin-stt-caddy-alias-smoke --network soorin-stt-alias-smoke -p 127.0.0.1:19444:8443 -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_HTTPS_USER=smoke -e "STT_HTTPS_PASSWORD_HASH=$HASH" -v "$PWD/deploy/caddy:/etc/caddy:ro" -v /data -v /config --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges:true --entrypoint /bin/sh caddy:2.10-alpine -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile'
