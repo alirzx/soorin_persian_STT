@@ -29,9 +29,15 @@ def test_unsafe_configuration_is_rejected(values):
     with pytest.raises(SystemExit,match="HTTPS preflight failed"):
         module.validate(config(**values))
 
-def test_public_alias_requires_auth_and_distinct_host():
-    with pytest.raises(SystemExit, match="requires STT_AUTH_MODE=basic"):
+def test_public_alias_requires_explicit_opt_in_for_no_auth():
+    with pytest.raises(SystemExit, match="STT_ALLOW_PUBLIC_NO_AUTH=true"):
         module.validate(config(STT_TLS_MODE="internal-public", STT_PUBLIC_HTTPS_HOST="93.118.154.255"))
+    module.validate(config(STT_TLS_MODE="internal-public", STT_PUBLIC_HTTPS_HOST="93.118.154.255",
+        STT_ALLOW_PUBLIC_NO_AUTH="true"))
+    with pytest.raises(SystemExit, match="must be true or false"):
+        module.validate(config(STT_ALLOW_PUBLIC_NO_AUTH="yes"))
+
+def test_public_alias_basic_auth_remains_supported():
     with pytest.raises(SystemExit, match="distinct STT_PUBLIC_HTTPS_HOST"):
         module.validate(config(STT_TLS_MODE="internal-public", STT_AUTH_MODE="basic",
             STT_PUBLIC_HTTPS_HOST="192.168.0.62", STT_HTTPS_USER="test",
