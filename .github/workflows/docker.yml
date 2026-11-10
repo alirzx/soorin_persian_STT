@@ -45,7 +45,7 @@ jobs:
           import json
           cmd=json.load(open('/tmp/stt-compose.json'))['services']['stt-https']['command']
           if isinstance(cmd,list): cmd=' '.join(cmd)
-          assert 'case "$STT_TLS_MODE"' in cmd, cmd
+          assert 'case "$$STT_TLS_MODE"' in cmd, cmd
           assert 'STT_ALLOW_PUBLIC_NO_AUTH' in cmd
           PY
       - name: Verify internal HTTPS gateway syntax
