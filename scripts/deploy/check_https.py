@@ -26,6 +26,9 @@ def validate(values: dict[str, str], root: Path = ROOT) -> None:
     bind = values.get("STT_HTTPS_BIND_HOST", "").strip()
     tls = values.get("STT_TLS_MODE", "internal")
     auth = values.get("STT_AUTH_MODE", "none")
+    public_no_auth = values.get("STT_ALLOW_PUBLIC_NO_AUTH", "false")
+    if public_no_auth not in {"true", "false"}:
+        fail("STT_ALLOW_PUBLIC_NO_AUTH must be true or false")
     if not host or host in {"0.0.0.0", "::", "*"}:
         fail("STT_HTTPS_HOST must be the URL hostname or LAN IP, not a wildcard")
     if "://" in host or "/" in host or ":" in host or not re.fullmatch(r"[A-Za-z0-9_.-]+", host):
@@ -69,8 +72,8 @@ def validate(values: dict[str, str], root: Path = ROOT) -> None:
         if ("://" in public_host or "/" in public_host or ":" in public_host
                 or not re.fullmatch(r"[A-Za-z0-9_.-]+", public_host)):
             fail("STT_PUBLIC_HTTPS_HOST must be an IP or DNS name without port/scheme")
-        if auth != "basic":
-            fail("internal-public requires STT_AUTH_MODE=basic on both hostnames")
+        if auth == "none" and public_no_auth != "true":
+            fail("internal-public password-free access requires STT_ALLOW_PUBLIC_NO_AUTH=true")
     if tls == "files":
         source = Path(values.get("STT_TLS_CERT_DIR", "../certs"))
         certs = (root / "deploy" / source).resolve() if not source.is_absolute() else source
