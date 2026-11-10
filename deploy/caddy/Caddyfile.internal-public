@@ -7,10 +7,10 @@
 }
 
 # Controlled public-IP trial. External :35942 maps to host :3443, container :8443.
-# Require Basic Auth on BOTH host aliases: public clients can spoof HTTP Host.
+# Use SAME auth policy on BOTH host aliases; the Host header is not an authorization boundary.
 https://{$STT_HTTPS_HOST}:8443, https://{$STT_PUBLIC_HTTPS_HOST}:8443 {
     tls internal
-    import /etc/caddy/auth.basic.caddy
+    import /etc/caddy/auth.{$STT_AUTH_MODE}.caddy
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy same-origin
