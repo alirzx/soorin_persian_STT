@@ -50,11 +50,11 @@ def test_caddy_binary_file_capability_is_in_bounding_set():
     assert gateway["security_opt"] == ["no-new-privileges:true"]
 
 
-def test_public_alias_applies_auth_to_both_hostnames():
+def test_public_alias_uses_same_optional_auth_for_both_hostnames():
     public = (ROOT / "deploy/caddy/Caddyfile.internal-public").read_text()
     assert "https://{$STT_HTTPS_HOST}:8443, https://{$STT_PUBLIC_HTTPS_HOST}:8443" in public
     assert "default_sni {$STT_HTTPS_HOST}" in public
-    assert "import /etc/caddy/auth.basic.caddy" in public
+    assert "import /etc/caddy/auth.{$STT_AUTH_MODE}.caddy" in public
     assert "reverse_proxy stt-ui:80" in public
     assert "header_up -Authorization" in public
 
@@ -64,7 +64,8 @@ def test_public_alias_smoke_models_required_network_dependency():
     assert "tests/fixtures/mock_stt_api.py:/mock_stt_api.py:ro" in workflow
     assert "Mock stt-api is ready" in workflow
     assert "/api/health/ready" in workflow
-    assert "case \"$STT_TLS_MODE\"" in (ROOT / "deploy/compose.yaml").read_text()
+    assert 'case "$STT_TLS_MODE"' in (ROOT / "deploy/compose.yaml").read_text()
+    assert "STT_ALLOW_PUBLIC_NO_AUTH" in (ROOT / "deploy/compose.yaml").read_text()
 
 def test_ip_https_default_sni_is_explicit_for_docker_nat():
     config = (ROOT / "deploy/caddy/Caddyfile.internal").read_text()
