@@ -40,11 +40,21 @@ jobs:
           docker compose --env-file .env -f deploy/compose.yaml --profile studio config --quiet
           docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --quiet
           python3 scripts/deploy/check_https.py
+          docker compose --env-file .env -f deploy/compose.yaml --profile studio --profile secure config --format json > /tmp/stt-compose.json
+          python3 - <<'PY'
+          import json
+          cmd=json.load(open('/tmp/stt-compose.json'))['services']['stt-https']['command']
+          if isinstance(cmd,list): cmd=' '.join(cmd)
+          assert 'case "$STT_TLS_MODE"' in cmd, cmd
+          assert 'STT_ALLOW_PUBLIC_NO_AUTH' in cmd
+          PY
       - name: Verify internal HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal --adapter caddyfile >/dev/null
       - name: Verify authenticated public-alias Caddy syntax
         run: |
-          docker run --rm --network none -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_HTTPS_USER=smoke -e 'STT_HTTPS_PASSWORD_HASH=$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile >/dev/null
+          docker run --rm --network none -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_AUTH_MODE=basic -e STT_HTTPS_USER=smoke -e 'STT_HTTPS_PASSWORD_HASH=$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile >/dev/null
+      - name: Verify password-free public-alias Caddy syntax
+        run: docker run --rm --network none -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile >/dev/null
       - name: Verify certificate-file HTTPS gateway syntax
         run: docker run --rm --network none -e STT_HTTPS_HOST=localhost -e STT_AUTH_MODE=none -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine caddy adapt --config /etc/caddy/Caddyfile.files --adapter caddyfile >/dev/null
       - name: Test IP-address HTTPS handshake behind Docker published port
@@ -114,7 +124,7 @@ jobs:
           done
           PW="test-only-password-not-a-secret"
           HASH="$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$PW")"
-          docker run -d --name soorin-stt-caddy-alias-smoke --network soorin-stt-alias-smoke -p 127.0.0.1:19444:8443 -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_HTTPS_USER=smoke -e "STT_HTTPS_PASSWORD_HASH=$HASH" -v "$PWD/deploy/caddy:/etc/caddy:ro" -v /data -v /config --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges:true --entrypoint /bin/sh caddy:2.10-alpine -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile'
+          docker run -d --name soorin-stt-caddy-alias-smoke --network soorin-stt-alias-smoke -p 127.0.0.1:19444:8443 -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_AUTH_MODE=basic -e STT_HTTPS_USER=smoke -e "STT_HTTPS_PASSWORD_HASH=$HASH" -v "$PWD/deploy/caddy:/etc/caddy:ro" -v /data -v /config --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges:true --entrypoint /bin/sh caddy:2.10-alpine -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile'
           for i in $(seq 1 30); do
             code="$(curl -ks -o /dev/null -w '%{http_code}' -H 'Host:198.51.100.25:35942' https://127.0.0.1:19444/ || true)"
             if [ "$code" = 401 ]; then break; fi
@@ -128,4 +138,18 @@ jobs:
           for host in "198.51.100.25:35942" "127.0.0.1:3443"; do
             curl -kfsS -u "smoke:$PW" -H "Host:$host" https://127.0.0.1:19444/api/health/ready | python3 -c "import json,sys; obj=json.load(sys.stdin); assert obj['ready'] is True and obj['model'] == 'ci-mock'"
             [ "$(curl -ks -o /dev/null -w '%{http_code}' -H "Host:$host" https://127.0.0.1:19444/api/health/ready)" = 401 ]
+          done
+          # Repeat the end-to-end Host checks with no browser authentication.
+          docker rm -f soorin-stt-caddy-alias-smoke >/dev/null
+          docker run -d --name soorin-stt-caddy-alias-smoke --network soorin-stt-alias-smoke -p 127.0.0.1:19444:8443 -e STT_HTTPS_HOST=127.0.0.1 -e STT_PUBLIC_HTTPS_HOST=198.51.100.25 -e STT_AUTH_MODE=none -e STT_ALLOW_PUBLIC_NO_AUTH=true -v "$PWD/deploy/caddy:/etc/caddy:ro" -v /data -v /config --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges:true --entrypoint /bin/sh caddy:2.10-alpine -ec 'exec caddy run --config /etc/caddy/Caddyfile.internal-public --adapter caddyfile'
+          for i in $(seq 1 30); do
+            code="$(curl -ks -o /dev/null -w '%{http_code}' -H 'Host:198.51.100.25:35942' https://127.0.0.1:19444/ || true)"
+            if [ "$code" = 200 ]; then break; fi
+            if [ "$i" = 30 ]; then echo "No-auth public Host failed: $code"; exit 1; fi
+            sleep 1
+          done
+          for host in "198.51.100.25:35942" "127.0.0.1:3443"; do
+            [ "$(curl -ks -o /dev/null -w '%{http_code}' -H "Host:$host" https://127.0.0.1:19444/)" = 200 ]
+            curl -kfsS -H "Host:$host" https://127.0.0.1:19444/ | grep -q '<div id="root"'
+            curl -kfsS -H "Host:$host" https://127.0.0.1:19444/api/health/ready | python3 -c "import json,sys; obj=json.load(sys.stdin); assert obj['ready'] is True and obj['model'] == 'ci-mock'"
           done
