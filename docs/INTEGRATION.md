@@ -40,3 +40,12 @@ Overloaded slots return 429. Model readiness returns 503 when unavailable.
 Runtime metrics are at /metrics, intended for internal monitoring only.
 
 The backend is started alone by default; use Compose `--profile studio` for the local development UI. See `docs/DEPLOYMENT.md` for network and authentication requirements.
+
+## Browser HTTPS authentication modes (server 62)
+Private `https://192.168.0.62:3443/api/...` and public
+`https://93.118.154.255:35942/api/...` use the SAME Caddy auth policy.
+Set `STT_AUTH_MODE=basic` for shared browser credentials, or
+`STT_AUTH_MODE=none` with `STT_ALLOW_PUBLIC_NO_AUTH=true` to explicitly
+allow unauthenticated public access. The latter requires network-security
+approval and abuse protection; see `docs/HTTPS_LAN_VPN.md`.
+This choice does not alter the backend `APP_API_KEY`/`X-API-Key` mechanism.
