@@ -87,11 +87,14 @@ services:
     environment:
       STT_TLS_MODE: ${STT_TLS_MODE:-internal}
       STT_AUTH_MODE: ${STT_AUTH_MODE:-none}
+      STT_ALLOW_PUBLIC_NO_AUTH: ${STT_ALLOW_PUBLIC_NO_AUTH:-false}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
         case "$STT_TLS_MODE" in internal|internal-public|files) ;; *) echo 'Unsupported STT_TLS_MODE' >&2; exit 1 ;; esac;
         case "$$STT_AUTH_MODE" in none|basic) ;; *) echo 'Unsupported STT_AUTH_MODE' >&2; exit 1 ;; esac;
+        case "$STT_ALLOW_PUBLIC_NO_AUTH" in true|false) ;; *) echo 'STT_ALLOW_PUBLIC_NO_AUTH must be true or false' >&2; exit 1 ;; esac;
+        if [ "$STT_TLS_MODE" = internal-public ] && [ "$STT_AUTH_MODE" = none ] && [ "$STT_ALLOW_PUBLIC_NO_AUTH" != true ]; then echo 'Password-free public access requires STT_ALLOW_PUBLIC_NO_AUTH=true' >&2; exit 1; fi;
         exec caddy run --config "/etc/caddy/Caddyfile.$$STT_TLS_MODE" --adapter caddyfile
     ports:
       - "${STT_HTTPS_BIND_HOST:-127.0.0.1}:${STT_HTTPS_PORT:-3443}:8443"
